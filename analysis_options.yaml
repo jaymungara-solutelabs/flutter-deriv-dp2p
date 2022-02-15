@@ -1,0 +1,6 @@
+include: package:deriv_lint/analysis_options.yaml
+
+linter:
+  rules:
+    - directives_ordering
+    - sort_pub_dependencies
