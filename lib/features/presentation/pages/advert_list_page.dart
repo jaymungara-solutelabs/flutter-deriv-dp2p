@@ -2,25 +2,34 @@ import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_deriv_bloc_manager/bloc_managers/bloc_manager.dart';
-import 'package:flutter_derivp2p_sample/api/response/advert.dart';
+import 'package:flutter_derivp2p_sample/core/states/deriv_ping/deriv_ping_cubit.dart';
+import 'package:flutter_derivp2p_sample/features/presentation/widgets/advert_item.dart';
 import 'package:flutter_derivp2p_sample/features/states/advert_list/advert_list_cubit.dart';
+import 'package:rxdart/rxdart.dart';
 
 /// Advert Listing Page
-class AdvertListPage extends StatefulWidget {
+class AdvertListWidget extends StatefulWidget {
   /// Initialise AdvertListPage
-  const AdvertListPage({Key? key}) : super(key: key);
-
-  /// Route Page route name.
-  static const String routeName = 'advert_list_page';
+  const AdvertListWidget({Key? key}) : super(key: key);
 
   @override
-  _AdvertListPageState createState() => _AdvertListPageState();
+  _AdvertListWidgetState createState() => _AdvertListWidgetState();
 }
 
-class _AdvertListPageState extends State<AdvertListPage> {
+class _AdvertListWidgetState extends State<AdvertListWidget> {
   late AdvertListCubit _advertListCubit;
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController searchController = TextEditingController();
+  final BehaviorSubject<String> searchOnChange = BehaviorSubject<String>();
+
+  void clearSearchInput() {
+    searchController.clear();
+    search('');
+  }
+
+  void search(String queryString) {
+    searchOnChange.add(queryString);
+  }
 
   void _onScroll() {
     if (_scrollController.position.maxScrollExtent !=
@@ -32,69 +41,227 @@ class _AdvertListPageState extends State<AdvertListPage> {
   }
 
   @override
+  void dispose() {
+    searchOnChange.close();
+    searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final DerivPingCubit _derivPingCubit = context.read<DerivPingCubit>();
+    _advertListCubit =
+        AdvertListCubit(binaryAPIWrapper: _derivPingCubit.binaryApi);
+  }
+
+  @override
   void initState() {
     super.initState();
 
-    _advertListCubit = BlocManager.instance.fetch<AdvertListCubit>();
-    _advertListCubit.fetchAdverts();
     _scrollController.addListener(_onScroll);
+
+    // search debounce
+    searchOnChange
+        .debounceTime(const Duration(milliseconds: 750))
+        .listen((String query) {
+      if (query.isNotEmpty) {
+        _advertListCubit.searchQuery(query);
+      } else {
+        _advertListCubit.searchQuery('');
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-          body: BlocBuilder<AdvertListCubit, AdvertListState>(
-        bloc: _advertListCubit,
-        builder: (BuildContext context, AdvertListState state) {
-          dev.log('currentstate : $state');
-          if (state is AdvertListLoadingState) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is AdvertListLoadedState) {
-            return ListView.builder(
-                shrinkWrap: true,
-                physics: const BouncingScrollPhysics(),
-                itemCount: state.hasRemaining
-                    ? state.adverts.length + 1
-                    : state.adverts.length,
-                controller: _scrollController,
-                itemBuilder: (BuildContext context, int index) {
-                  if (index >= state.adverts.length) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else {
-                    final Advert item = state.adverts[index];
+          body: BlocProvider<AdvertListCubit>.value(
+        value: _advertListCubit..fetchAdverts(),
+        child: Column(
+          children: <Widget>[
+            Expanded(
+              child: BlocBuilder<AdvertListCubit, AdvertListState>(
+                builder: (BuildContext context, AdvertListState state) {
+                  dev.log('advert list page state : $state');
 
-                    return Container(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  if (state is AdvertListLoadingState ||
+                      state is AdvertListLoadedState) {
+                    return Column(
+                      children: <Widget>[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: <Widget>[
-                            Text(item.advertiserDetails?.name ?? ''),
-                            const SizedBox(height: 8),
-                            Text(item.description ?? ''),
-                            const SizedBox(height: 8),
-                            Text('$index : ID : ${item.id}'),
-                            const SizedBox(height: 8),
-                            Text('Amount : ${item.amountDisplay}'),
+                            const Padding(
+                                padding: EdgeInsets.only(top: 16, bottom: 8),
+                                child: Text('Sort By ',
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 16))),
+                            Container(
+                              margin: const EdgeInsets.only(
+                                  top: 16, bottom: 8, right: 16),
+                              decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.blueAccent),
+                                  borderRadius: BorderRadius.circular(4)),
+                              child: Row(
+                                children: <Widget>[
+                                  GestureDetector(
+                                    onTap: () {
+                                      if (_advertListCubit.sortType != 0) {
+                                        _advertListCubit.toggleSortType(0);
+                                      }
+                                    },
+                                    child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 8),
+                                        color: _advertListCubit.sortType == 0
+                                            ? Colors.blueAccent
+                                            : Colors.white,
+                                        child: Text('rate',
+                                            style: TextStyle(
+                                                color:
+                                                    _advertListCubit.sortType ==
+                                                            0
+                                                        ? Colors.white
+                                                        : Colors.blueAccent))),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      if (_advertListCubit.sortType != 1) {
+                                        _advertListCubit.toggleSortType(1);
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      color: _advertListCubit.sortType == 1
+                                          ? Colors.blueAccent
+                                          : Colors.white,
+                                      child: Text(
+                                        'completion',
+                                        style: TextStyle(
+                                          color: _advertListCubit.sortType == 1
+                                              ? Colors.white
+                                              : Colors.blueAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
-                            boxShadow: const <BoxShadow>[
-                              BoxShadow(
-                                  color: Colors.grey,
-                                  blurRadius: 6,
-                                  spreadRadius: 2)
-                            ]));
-                    // _buildAdvertListItems(state.adverts, index, context)
+                        Container(
+                          margin: const EdgeInsets.only(
+                              left: 16, right: 16, bottom: 8),
+                          child: TextFormField(
+                            onChanged: (String query) => search(query),
+                            controller: searchController,
+                            cursorColor: Colors.black,
+                            cursorWidth: 1,
+                            textInputAction: TextInputAction.done,
+                            style: const TextStyle(
+                                color: Colors.black, fontSize: 16),
+                            decoration: InputDecoration(
+                              hintText: 'Search',
+                              prefixIcon: const Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: Icon(Icons.search)),
+                              suffixIcon: searchController.text.isNotEmpty
+                                  ? GestureDetector(
+                                      child: const Padding(
+                                          padding: EdgeInsets.all(8),
+                                          child: Icon(Icons.close)),
+                                      onTap: clearSearchInput)
+                                  : null,
+                              fillColor: const Color(0xFFEEEEF0),
+                              filled: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              focusedBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(10))),
+                              border: const OutlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(10))),
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(10),
+                                ),
+                              ),
+                              disabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        state is AdvertListLoadingState
+                            ? const Expanded(
+                                child:
+                                    Center(child: CircularProgressIndicator()))
+                            : Container(),
+                        state is AdvertListLoadedState
+                            ? Expanded(
+                                child: ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const BouncingScrollPhysics(),
+                                    itemCount: state.hasRemaining
+                                        ? state.adverts.length + 1
+                                        : state.adverts.length,
+                                    controller: _scrollController,
+                                    itemBuilder:
+                                        (BuildContext context, int index) {
+                                      if (index >= state.adverts.length) {
+                                        return const Center(
+                                            child: CircularProgressIndicator());
+                                      } else {
+                                        return AdvertItem(
+                                            item: state.adverts[index]);
+                                      }
+                                    }),
+                              )
+                            : Container()
+                      ],
+                    );
+                  } else {
+                    return Center(child: Text('connecting... : $state'));
                   }
-                });
-            // return const Center(child: Text('Advert List'));
-          } else {
-            return Center(child: Text('connecting... : $state'));
-          }
-        },
+
+                  // if (state is AdvertListLoadingState) {
+                  //   return const Center(child: CircularProgressIndicator());
+                  // } else if (state is AdvertListLoadedState) {
+                  //   return Expanded(
+                  //     child: ListView.builder(
+                  //         shrinkWrap: true,
+                  //         physics: const BouncingScrollPhysics(),
+                  //         itemCount: state.hasRemaining
+                  //             ? state.adverts.length + 1
+                  //             : state.adverts.length,
+                  //         controller: _scrollController,
+                  //         itemBuilder: (BuildContext context, int index) {
+                  //           if (index >= state.adverts.length) {
+                  //             return const Center(
+                  //                 child: CircularProgressIndicator());
+                  //           } else {
+                  //             return AdvertItem(item: state.adverts[index]);
+                  //           }
+                  //         }));
+                  // } else {
+                  //   return Center(child: Text('connecting... : $state'));
+                  // }
+                },
+              ),
+            )
+          ],
+        ),
       ));
 }

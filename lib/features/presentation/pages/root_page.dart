@@ -1,9 +1,9 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_deriv_bloc_manager/bloc_managers/bloc_manager.dart';
+import 'package:flutter_derivp2p_sample/core/states/deriv_ping/deriv_ping_cubit.dart';
 import 'package:flutter_derivp2p_sample/features/presentation/pages/advert_list_page.dart';
 import 'package:flutter_derivp2p_sample/features/presentation/widgets/center_text_widget.dart';
-import 'package:flutter_derivp2p_sample/features/states/deriv_ping/deriv_ping_cubit.dart';
 
 /// RootPage which manages connection listening point
 class RootPage extends StatefulWidget {
@@ -21,10 +21,10 @@ class _RootPageState extends State<RootPage> {
   late DerivPingCubit _derivPingCubit;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
-    _derivPingCubit = BlocManager.instance.fetch<DerivPingCubit>();
+    _derivPingCubit = BlocProvider.of<DerivPingCubit>(context);
     _derivPingCubit.initWebSocket();
   }
 
@@ -34,8 +34,9 @@ class _RootPageState extends State<RootPage> {
         body: BlocBuilder<DerivPingCubit, DerivPingState>(
           bloc: _derivPingCubit,
           builder: (BuildContext context, DerivPingState state) {
+            dev.log('root page state : $state');
             if (state is DerivPingLoadedState) {
-              return const AdvertListPage();
+              return const AdvertListWidget();
             } else if (state is DerivPingLoadingState) {
               return const CenterTextWidget(title: 'Connecting...');
             } else if (state is DerivPingErrorState) {

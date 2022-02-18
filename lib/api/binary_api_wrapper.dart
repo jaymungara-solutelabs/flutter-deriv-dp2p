@@ -25,13 +25,14 @@ class BinaryAPIWrapper {
       _derivAPICall(AuthorizeRequest(authorize: token));
 
   /// fetch advert list
-  Future<Map<String, dynamic>> p2pAdvertList({
-    String? counterpartyType,
-    int? limit,
-    int? offset,
-    String? searchQuery,
-  }) =>
+  Future<Map<String, dynamic>> p2pAdvertList(
+          {String? counterpartyType,
+          int? limit,
+          int? offset,
+          String? searchQuery,
+          String? sortBy}) =>
       _derivAPICall(P2pAdvertListRequest(
+          sortBy: sortBy,
           counterpartyType: counterpartyType,
           limit: limit,
           offset: offset,

@@ -7,8 +7,6 @@ PODS:
   - Flutter (1.0.0)
   - flutter_deriv_api (0.0.1):
     - Flutter
-  - flutter_deriv_bloc_manager (0.0.1):
-    - Flutter
   - package_info (0.0.1):
     - Flutter
   - Reachability (3.2)
@@ -18,7 +16,6 @@ DEPENDENCIES:
   - device_info (from `.symlinks/plugins/device_info/ios`)
   - Flutter (from `Flutter`)
   - flutter_deriv_api (from `.symlinks/plugins/flutter_deriv_api/ios`)
-  - flutter_deriv_bloc_manager (from `.symlinks/plugins/flutter_deriv_bloc_manager/ios`)
   - package_info (from `.symlinks/plugins/package_info/ios`)
 
 SPEC REPOS:
@@ -34,8 +31,6 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_deriv_api:
     :path: ".symlinks/plugins/flutter_deriv_api/ios"
-  flutter_deriv_bloc_manager:
-    :path: ".symlinks/plugins/flutter_deriv_bloc_manager/ios"
   package_info:
     :path: ".symlinks/plugins/package_info/ios"
 
@@ -44,7 +39,6 @@ SPEC CHECKSUMS:
   device_info: d7d233b645a32c40dfdc212de5cf646ca482f175
   Flutter: 50d75fe2f02b26cc09d224853bb45737f8b3214a
   flutter_deriv_api: 9e29abd7cc5091b72303f9c8be549618415f1437
-  flutter_deriv_bloc_manager: d3456b8d2971c3a0fbf4b7ecc81893504d93a45e
   package_info: 873975fc26034f0b863a300ad47e7f1ac6c7ec62
   Reachability: 33e18b67625424e47b6cde6d202dce689ad7af96
 
