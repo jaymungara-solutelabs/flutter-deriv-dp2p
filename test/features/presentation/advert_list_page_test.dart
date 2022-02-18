@@ -7,7 +7,9 @@ import 'advert_list_data.dart';
 void main() {
   group('Advert list page widget test =>', () {
     testWidgets('Widget exists', (WidgetTester tester) async {
-      await tester.pumpWidget(_TestApp(adverts: adverts, hasRemaining: true));
+      final List<Advert> advertsList = adverts;
+      await tester
+          .pumpWidget(_TestApp(adverts: advertsList, hasRemaining: true));
 
       await tester.idle();
       await tester.pumpAndSettle();
@@ -18,7 +20,7 @@ void main() {
       final Finder itemFinder = find.byKey(const Key('item_4'));
 
       // Scroll until the item to be found appears.
-      await tester.scrollUntilVisible(itemFinder, 500, scrollable: listFinder);
+      await tester.scrollUntilVisible(itemFinder, 1000, scrollable: listFinder);
       expect(itemFinder, findsOneWidget);
     });
   });
