@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ class _AdvertListWidgetState extends State<AdvertListWidget> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController searchController = TextEditingController();
   final BehaviorSubject<String> searchOnChange = BehaviorSubject<String>();
+  StreamSubscription<void>? _periodicFetchStreamSubscription;
 
   void clearSearchInput() {
     searchController.clear();
@@ -44,6 +46,7 @@ class _AdvertListWidgetState extends State<AdvertListWidget> {
   void dispose() {
     searchOnChange.close();
     searchController.dispose();
+    _periodicFetchStreamSubscription?.cancel();
     super.dispose();
   }
 
@@ -54,6 +57,17 @@ class _AdvertListWidgetState extends State<AdvertListWidget> {
     final DerivPingCubit _derivPingCubit = context.read<DerivPingCubit>();
     _advertListCubit =
         AdvertListCubit(binaryAPIWrapper: _derivPingCubit.binaryApi);
+
+    _periodicFetchStreamSubscription?.cancel();
+
+    _periodicFetchStreamSubscription = Stream<void>.periodic(
+      const Duration(minutes: 1),
+    ).listen((_) {
+      dev.log('tick state : ${_derivPingCubit.state}');
+      if (_derivPingCubit.state is DerivPingLoadedState) {
+        _advertListCubit.fetchAdverts(isPeriodic: true);
+      }
+    });
   }
 
   @override
@@ -77,6 +91,7 @@ class _AdvertListWidgetState extends State<AdvertListWidget> {
   @override
   Widget build(BuildContext context) => Scaffold(
           body: BlocProvider<AdvertListCubit>.value(
+        // value: _advertListCubit,
         value: _advertListCubit..fetchAdverts(),
         child: Column(
           children: <Widget>[

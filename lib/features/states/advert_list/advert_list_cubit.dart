@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+import 'dart:math' as math;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_derivp2p_sample/api/binary_api_wrapper.dart';
@@ -16,7 +17,7 @@ class AdvertListCubit extends Cubit<AdvertListState> {
   final BinaryAPIWrapper binaryAPIWrapper;
 
   /// fetch limit for pagination
-  final int defaultDataFetchLimit = 10;
+  final int defaultDataFetchLimit = 5;
 
   /// list of adverts
   final List<Advert> _adverts = <Advert>[];
@@ -52,21 +53,28 @@ class AdvertListCubit extends Cubit<AdvertListState> {
   }
 
   /// fetch list of adverts
-  Future<void> fetchAdverts() async {
+  Future<void> fetchAdverts({bool isPeriodic = false}) async {
     try {
       isFetching = true;
 
-      final int offset = _adverts.length ~/ defaultDataFetchLimit;
+      // final int offset = _adverts.length ~/ defaultDataFetchLimit;
+      final int limit = isPeriodic
+          ? math.max(_adverts.length, defaultDataFetchLimit)
+          : defaultDataFetchLimit;
+      final int offset = isPeriodic ? 0 : _adverts.length;
+      dev.log('advert_list_cubit_req : offset = $offset : limit = $limit : '
+          'isPeriodic = $isPeriodic : list = ${_adverts.length}');
       if (offset == 0) {
         emit(AdvertListLoadingState());
       }
 
-      dev.log('_binaryAPIWrapper : $binaryAPIWrapper');
       final Map<String, dynamic>? advertListResponse = await binaryAPIWrapper
           .p2pAdvertList(
-              offset: offset * defaultDataFetchLimit,
+              // offset: offset * defaultDataFetchLimit,
+              // limit: defaultDataFetchLimit,
+              offset: offset,
+              limit: limit,
               counterpartyType: 'buy',
-              limit: defaultDataFetchLimit,
               searchQuery: _searchQuery,
               sortBy: _sortType == 0 ? 'rate' : 'completion')
           .timeout(const Duration(seconds: 15));
